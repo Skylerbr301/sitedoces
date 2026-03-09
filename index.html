@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Doce Universo</title>
+<style>
+body{
+    margin:0;
+    font-family:'Segoe UI',Arial;
+    background:#e7d0c1;
+    color:#7a4a24;
+}
+body::before{
+    content:"";
+    position:fixed;
+    width:100%;
+    height:100%;
+    background:
+    radial-gradient(circle at 20% 30%,rgba(255,255,255,0.3) 0%,transparent 40%),
+    radial-gradient(circle at 80% 70%,rgba(255,255,255,0.2) 0%,transparent 40%);
+    z-index:-1;
+}
+header{
+    text-align:center;
+    padding:25px;
+    background:linear-gradient(90deg,#a86533,#7a4a24);
+    color:white;
+    box-shadow:0 4px 15px rgba(0,0,0,0.2);
+}
+.logo{width:120px;}
+.cardapio{
+    padding:15px;
+    display:grid;
+    gap:18px;
+}
+.card{
+    background:white;
+    border-radius:16px;
+    overflow:hidden;
+    display:flex;
+    box-shadow:0 8px 20px rgba(0,0,0,0.15);
+    animation:entrar .6s ease;
+}
+.card img{
+    width:140px;
+    object-fit:cover;
+    cursor:pointer;
+}
+.info{
+    padding:12px;
+    flex:1;
+}
+.preco{
+    font-weight:bold;
+    color:#a86533;
+    font-size:18px;
+    margin-bottom:6px;
+}
+label{
+    font-size:13px;
+    font-weight:bold;
+    margin-top:6px;
+    display:block;
+}
+select,input{
+    width:100%;
+    margin-top:4px;
+    padding:7px;
+    border-radius:8px;
+    border:1px solid #ddd;
+    font-size:14px;
+}
+.controls{
+    margin-top:10px;
+}
+.controls button{
+    width:100%;
+    padding:10px;
+    border:none;
+    background:linear-gradient(45deg,#a86533,#7a4a24);
+    color:white;
+    border-radius:12px;
+    font-size:16px;
+    cursor:pointer;
+}
+.carrinhoBtn{
+    position:fixed;
+    bottom:20px;
+    right:20px;
+    background:linear-gradient(45deg,#a86533,#7a4a24);
+    color:white;
+    width:70px;
+    height:70px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:30px;
+    box-shadow:0 6px 25px rgba(0,0,0,.4);
+    cursor:pointer;
+}
+.carrinhoCount{
+    position:absolute;
+    top:-6px;
+    right:-6px;
+    background:#ff7043;
+    color:white;
+    padding:4px 8px;
+    border-radius:50%;
+    font-size:12px;
+}
+.popup{
+    position:fixed;
+    bottom:-100%;
+    left:0;
+    width:100%;
+    max-height:80%;
+    background:white;
+    border-radius:25px 25px 0 0;
+    transition:.4s;
+    padding:20px;
+    overflow:auto;
+    box-shadow:0 -8px 25px rgba(0,0,0,0.3);
+}
+.popup.ativo{
+    bottom:0;
+}
+.itemCarrinho{
+    border-bottom:1px solid #eee;
+    padding:12px 0;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+}
+.itemCarrinho img{
+    width:80px;
+    border-radius:12px;
+}
+.itemCarrinho-info{
+    flex:1;
+}
+.itemCarrinho-info label{
+    font-weight:bold;
+    margin-top:4px;
+    margin-right:5px;
+}
+.itemCarrinho-info select{
+    width:auto;
+    margin-right:5px;
+    display:inline-block;
+}
+.total{
+    font-weight:bold;
+    margin-top:10px;
+    font-size:18px;
+}
+.enviar{
+    width:100%;
+    padding:15px;
+    border:none;
+    background:linear-gradient(45deg,#a86533,#7a4a24);
+    color:white;
+    font-size:16px;
+    border-radius:12px;
+    margin-top:12px;
+    cursor:pointer;
+}
+.adicionarMais{
+    width:100%;
+    padding:12px;
+    border:none;
+    background:linear-gradient(45deg,#a86533,#7a4a24);
+    color:white;
+    font-size:16px;
+    border-radius:12px;
+    margin-top:10px;
+    cursor:pointer;
+}
+.pixBox, .dinheiroBox{
+    text-align:center;
+    margin-top:15px;
+    display:none;
+}
+.pixBox img{
+    width:220px;
+    margin-top:10px;
+}
+.pixCopia{
+    word-break: break-all;
+    font-size:13px;
+    margin-top:5px;
+    background:#f2f2f2;
+    padding:5px;
+    border-radius:5px;
+}
+.viewer{
+    position:fixed;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
+    background:black;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:999;
+}
+.viewer img{
+    max-width:90%;
+    max-height:90%;
+    border-radius:12px;
+}
+@keyframes entrar{
+    from{opacity:0;transform:translateY(40px)}
+    to{opacity:1;transform:translateY(0)}
+}
+@media(max-width:500px){
+    .card{flex-direction:column;}
+    .card img{width:100%;}
+}
+</style>
+</head>
+<body>
+
+<header>
+<img src="logo.png" class="logo">
+<h2>Doce Universo</h2>
+<p>Uma galáxia de sabores 🍰</p>
+<div>🔥 213 pedidos feitos hoje</div>
+<div>📦 Restam 12 unidades hoje</div>
+</header>
+
+<section class="cardapio">
+
+<!-- BOLO DE POTE -->
+<div class="card">
+<img src="copo-bolha.jpg" onclick="verFoto(this)">
+<div class="info">
+<h3>Bolo de Pote</h3>
+<div class="preco">R$8</div>
+<label>Massa:</label>
+<select id="massa-copo">
+<option>Massa branca</option>
+<option>Massa 50% cacau</option>
+</select>
+<label>Brigadeiro:</label>
+<select id="recheio-copo">
+<option>Ninho</option>
+<option>50% cacau</option>
+<option>Maracujá</option>
+<option>Abacaxi</option>
+</select>
+<label>Cobertura:</label>
+<select id="cobertura-copo">
+<option>Ninho</option>
+<option>Chocolate</option>
+<option>Maracujá</option>
+</select>
+<input id="obs-copo" placeholder="Observação">
+<div class="controls">
+<button onclick="adicionarCarrinho('copo')">Adicionar no carrinho</button>
+</div>
+</div>
+</div>
+
+<!-- BOLO NA CAIXA -->
+<div class="card">
+<img src="caixa.jpg" onclick="verFoto(this)">
+<div class="info">
+<h3>Bolo na Caixa</h3>
+<div class="preco">R$7</div>
+<label>Massa:</label>
+<select id="massa-caixa">
+<option>Massa branca</option>
+<option>Massa 50% cacau</option>
+</select>
+<label>Brigadeiro:</label>
+<select id="recheio-caixa">
+<option>Ninho</option>
+<option>50% cacau</option>
+<option>Maracujá</option>
+<option>Abacaxi</option>
+</select>
+<label>Cobertura:</label>
+<select id="cobertura-caixa">
+<option>Ninho</option>
+<option>Chocolate</option>
+<option>Maracujá</option>
+</select>
+<input id="obs-caixa" placeholder="Observação">
+<div class="controls">
+<button onclick="adicionarCarrinho('caixa')">Adicionar no carrinho</button>
+</div>
+</div>
+</div>
+
+<!-- MINI BOLO REDONDO -->
+<div class="card">
+<img src="redonda.jpg" onclick="verFoto(this)">
+<div class="info">
+<h3>Mini Bolo Redondo</h3>
+<div class="preco">R$7</div>
+<label>Massa:</label>
+<select id="massa-redondo">
+<option>Massa branca</option>
+<option>Massa 50% cacau</option>
+</select>
+<label>Brigadeiro:</label>
+<select id="recheio-redondo">
+<option>Ninho</option>
+<option>50% cacau</option>
+<option>Maracujá</option>
+<option>Abacaxi</option>
+</select>
+<label>Cobertura:</label>
+<select id="cobertura-redondo">
+<option>Ninho</option>
+<option>Chocolate</option>
+<option>Maracujá</option>
+</select>
+<input id="obs-redondo" placeholder="Observação">
+<div class="controls">
+<button onclick="adicionarCarrinho('redondo')">Adicionar no carrinho</button>
+</div>
+</div>
+</div>
+
+</section>
+
+<div class="carrinhoBtn" onclick="abrirCarrinho()">🛒
+<div class="carrinhoCount" id="contador">0</div>
+</div>
+
+<div class="popup" id="popup">
+<h3>Seu pedido</h3>
+<input id="nomeCliente" placeholder="Seu nome">
+<select id="pagamento" onchange="mostrarPagamento()">
+<option>Pix</option>
+<option>Dinheiro</option>
+</select>
+
+<div class="dinheiroBox" id="dinheiroBox">
+<label>Troco para quanto?</label>
+<input type="number" id="troco" placeholder="Ex: 50">
+</div>
+
+<div class="pixBox" id="pixBox">
+<h3>💳 Pague com Pix</h3>
+<img src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=PIX-CHAVE-AQUI" id="pixImg">
+<p>Escaneie o QR Code ou cole a chave Pix:</p>
+<div class="pixCopia" id="pixCode">
+</div>
+</div>
+
+<div id="lista"></div>
+<div class="total">Total: R$ <span id="total">0</span></div>
+<button class="adicionarMais" onclick="voltarCardapio()">Adicionar mais itens</button>
+<button class="enviar" onclick="enviarPedido()">Enviar no WhatsApp</button>
+</div>
+
+<div class="viewer" id="viewer" onclick="fecharFoto()">
+<img id="imgViewer">
+</div>
+
+<script>
+let pedidos=[];
+let produtos={
+copo:{nome:"Bolo de Pote",preco:8,img:"copo-bolha.jpg"},
+caixa:{nome:"Bolo na Caixa",preco:7,img:"caixa.jpg"},
+redondo:{nome:"Mini Bolo Redondo",preco:7,img:"redonda.jpg"}
+};
+
+function adicionarCarrinho(produto){
+let massa=document.getElementById("massa-"+produto).value;
+let recheio=document.getElementById("recheio-"+produto).value;
+let cobertura=document.getElementById("cobertura-"+produto).value;
+let obs=document.getElementById("obs-"+produto).value;
+pedidos.push({produto:produtos[produto].nome,massa,recheio,cobertura,obs,preco:produtos[produto].preco,img:produtos[produto].img});
+abrirCarrinho();
+calcular();
+}
+
+function calcular(){
+let total=0;
+let lista="";
+let contador=0;
+pedidos.forEach((p,i)=>{
+lista+=`
+<div class="itemCarrinho">
+<img src="${p.img}">
+<div class="itemCarrinho-info">
+<label>Massa:</label>
+<select onchange="editarItem(${i},'massa',this.value)">
+<option ${p.massa=="Massa branca"?"selected":""}>Massa branca</option>
+<option ${p.massa=="Massa 50% cacau"?"selected":""}>Massa 50% cacau</option>
+</select>
+<label>Brigadeiro:</label>
+<select onchange="editarItem(${i},'recheio',this.value)">
+<option ${p.recheio=="Ninho"?"selected":""}>Ninho</option>
+<option ${p.recheio=="50% cacau"?"selected":""}>50% cacau</option>
+<option ${p.recheio=="Maracujá"?"selected":""}>Maracujá</option>
+<option ${p.recheio=="Abacaxi"?"selected":""}>Abacaxi</option>
+</select>
+<label>Cobertura:</label>
+<select onchange="editarItem(${i},'cobertura',this.value)">
+<option ${p.cobertura=="Ninho"?"selected":""}>Ninho</option>
+<option ${p.cobertura=="Chocolate"?"selected":""}>Chocolate</option>
+<option ${p.cobertura=="Maracujá"?"selected":""}>Maracujá</option>
+</select>
+</div>
+</div>`;
+total+=p.preco;
+contador++;
+});
+document.getElementById("lista").innerHTML=lista;
+document.getElementById("total").innerText=total;
+document.getElementById("contador").innerText=contador;
+
+// Atualiza Pix com valor exato
+let pag=document.getElementById("pagamento").value;
+if(pag==="Pix"){
+let valorPix=total.toFixed(2).replace('.',',');
+document.getElementById("pixCode").innerText=`PIX-CHAVE-AQUI\nValor: R$${valorPix}`;
+}
+mostrarPagamento();
+}
+
+function editarItem(i,campo,valor){pedidos[i][campo]=valor;calcular();}
+function abrirCarrinho(){popup.classList.add("ativo");}
+function voltarCardapio(){popup.classList.remove("ativo");}
+
+function mostrarPagamento(){
+let pag=document.getElementById("pagamento").value;
+document.getElementById("pixBox").style.display=(pag==="Pix")?"block":"none";
+document.getElementById("dinheiroBox").style.display=(pag==="Dinheiro")?"block":"none";
+}
+
+function enviarPedido(){
+let nome=document.getElementById("nomeCliente").value;
+let pag=document.getElementById("pagamento").value;
+let msg="🍰 *DOCE UNIVERSO* %0A%0A";
+msg+="Cliente: "+nome+"%0A%0A";
+let total=0;
+pedidos.forEach(p=>{
+msg+=`1x ${p.produto}%0AMassa: ${p.massa}%0ABrigadeiro: ${p.recheio}%0ACobertura: ${p.cobertura}%0A`;
+if(p.obs && p.obs.trim() !== "") msg+=`Observação: ${p.obs}%0A`;
+msg+="%0A";
+total+=p.preco;
+});
+msg+="💰 Total: R$"+total+"%0A";
+msg+="💵 Pagamento: "+pag+"%0A";
+if(pag==="Dinheiro"){
+let troco=document.getElementById("troco").value;
+if(troco) msg+="💸 Troco para: R$"+troco+"%0A";
+}
+window.open("https://wa.me/5585997608766?text="+msg);
+}
+
+function verFoto(img){viewer.style.display="flex";imgViewer.src=img.src;}
+function fecharFoto(){viewer.style.display="none";}
+</script>
+
+</body>
+</html>
