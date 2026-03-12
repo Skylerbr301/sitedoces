@@ -587,13 +587,31 @@ function iniciarFirebase() {
     // Escuta produtos em tempo real
     db.collection('produtos').onSnapshot(snap => {
       respondeu = true; clearTimeout(timer); offline = false;
-      if (snap.empty) {
+      console.log('[Firebase] onSnapshot recebido — ' + snap.size + ' produtos, source:', snap.metadata.fromCache ? 'CACHE' : 'SERVIDOR');
+      // Verifica se os IDs do Firebase batem com os IDs esperados pelo site
+      const idsEsperados = Object.keys(produtos); // ex: ['bq1','bq2',...]
+      const idsFirebase  = snap.docs.map(d => d.id);
+      const idsBatem = idsEsperados.every(id => idsFirebase.includes(id));
+
+      if (snap.empty || !idsBatem) {
+        // Cria/recria todos os produtos com os IDs corretos
         const batch = db.batch();
         Object.values(produtos).forEach(p => {
+          // Preserva estoque existente se já havia documento com outro ID e mesmo nome
+          const docAntigo = snap.docs.find(d =>
+            d.data().massa === p.massa && d.data().recheio === p.recheio && d.data().categoria === p.categoria
+          );
+          const estoqueAtual = docAntigo ? (parseInt(docAntigo.data().estoque,10)||5) : p.estoque;
           batch.set(db.collection('produtos').doc(p.id),
-            { categoria:p.categoria, massa:p.massa, recheio:p.recheio, preco:p.preco, estoque:p.estoque });
+            { categoria:p.categoria, massa:p.massa, recheio:p.recheio, preco:p.preco, estoque:estoqueAtual });
+          // Remove documento antigo com ID errado se existir
+          if (docAntigo && docAntigo.id !== p.id) {
+            batch.delete(db.collection('produtos').doc(docAntigo.id));
+          }
         });
-        batch.commit().catch(console.warn);
+        batch.commit()
+          .then(() => showToast('✅ Produtos sincronizados com sucesso!'))
+          .catch(console.warn);
         return;
       }
       const map = {};
@@ -603,7 +621,7 @@ function iniciarFirebase() {
       renderCardapio();
       if (document.getElementById('ck-view').style.display === 'block') renderCheckout();
       if (admAberto) renderAdmin();
-    }, err => { respondeu = true; clearTimeout(timer); offline = true; });
+    }, err => { respondeu = true; clearTimeout(timer); offline = true; console.error('[Firebase] ERRO onSnapshot:', err); });
 
     // Escuta estado do site (ligado/desligado) em tempo real
     db.collection('config').doc('site').onSnapshot(doc => {
@@ -748,7 +766,9 @@ function adicionar(id) {
   showToast('🎉 ' + p.massa + ' + ' + p.recheio + ' adicionado!');
   // Salva no Firebase — o onSnapshot vai confirmar para TODOS os dispositivos
   db.collection('produtos').doc(id).update({ estoque: firebase.firestore.FieldValue.increment(-1) })
-    .catch(() => {
+    .then(() => console.log('[Firebase] Estoque atualizado no servidor para:', id))
+    .catch((err) => {
+      console.error('[Firebase] ERRO ao atualizar estoque:', err);
       // Se falhou, desfaz localmente
       offline = true;
       carrinho[id]--; if (!carrinho[id]) delete carrinho[id];
