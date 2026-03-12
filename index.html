@@ -598,12 +598,7 @@ function iniciarFirebase() {
       }
       const map = {};
       snap.forEach(doc => { map[doc.id] = parseInt(doc.data().estoque, 10) || 0; });
-      // Aplica estoque do Firebase, mas subtrai o que está no carrinho local
-      // para não "pular" o estoque enquanto o usuário está comprando
-      Object.keys(map).forEach(id => {
-        const noCarrinho = carrinho[id] || 0;
-        map[id] = Math.max(0, map[id] - noCarrinho);
-      });
+      // Firebase é a fonte de verdade — atualiza tudo direto
       montarProdutos(map);
       renderCardapio();
       if (document.getElementById('ck-view').style.display === 'block') renderCheckout();
@@ -741,35 +736,41 @@ function renderCardapio() {
 }
 
 // ============================================================
-// CARRINHO — local first, Firebase em background
+// CARRINHO — Firebase é a fonte de verdade
 // ============================================================
 function adicionar(id) {
   const p = produtos[id];
   if (!p || p.estoque <= 0) { showToast('⚠️ Produto esgotado!'); return; }
+  // Desconta localmente de imediato (feedback visual instantâneo)
   carrinho[id] = (carrinho[id]||0) + 1;
   p.estoque--;
   atualizarCard(id); atualizarBadge();
   showToast('🎉 ' + p.massa + ' + ' + p.recheio + ' adicionado!');
-  if (!offline) {
-    db.collection('produtos').doc(id).update({ estoque: firebase.firestore.FieldValue.increment(-1) }).catch(() => { offline = true; });
-  }
+  // Salva no Firebase — o onSnapshot vai confirmar para TODOS os dispositivos
+  db.collection('produtos').doc(id).update({ estoque: firebase.firestore.FieldValue.increment(-1) })
+    .catch(() => {
+      // Se falhou, desfaz localmente
+      offline = true;
+      carrinho[id]--; if (!carrinho[id]) delete carrinho[id];
+      p.estoque++;
+      atualizarCard(id); atualizarBadge();
+      showToast('⚠️ Sem conexão. Tente novamente.');
+    });
 }
 function remover1(id) {
   if (!carrinho[id]) return;
   produtos[id].estoque++; carrinho[id]--;
   if (!carrinho[id]) delete carrinho[id];
   atualizarCard(id); atualizarBadge(); renderCheckout();
-  if (!offline) {
-    db.collection('produtos').doc(id).update({ estoque: firebase.firestore.FieldValue.increment(1) }).catch(() => { offline = true; });
-  }
+  db.collection('produtos').doc(id).update({ estoque: firebase.firestore.FieldValue.increment(1) })
+    .catch(() => { offline = true; });
 }
 function removerTudo(id) {
   const qty = carrinho[id]; if (!qty) return;
   produtos[id].estoque += qty; delete carrinho[id];
   atualizarCard(id); atualizarBadge(); renderCheckout();
-  if (!offline) {
-    db.collection('produtos').doc(id).update({ estoque: firebase.firestore.FieldValue.increment(qty) }).catch(() => { offline = true; });
-  }
+  db.collection('produtos').doc(id).update({ estoque: firebase.firestore.FieldValue.increment(qty) })
+    .catch(() => { offline = true; });
 }
 function mais1(id) { adicionar(id); renderCheckout(); }
 
