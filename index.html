@@ -598,6 +598,12 @@ function iniciarFirebase() {
       }
       const map = {};
       snap.forEach(doc => { map[doc.id] = parseInt(doc.data().estoque, 10) || 0; });
+      // Aplica estoque do Firebase, mas subtrai o que está no carrinho local
+      // para não "pular" o estoque enquanto o usuário está comprando
+      Object.keys(map).forEach(id => {
+        const noCarrinho = carrinho[id] || 0;
+        map[id] = Math.max(0, map[id] - noCarrinho);
+      });
       montarProdutos(map);
       renderCardapio();
       if (document.getElementById('ck-view').style.display === 'block') renderCheckout();
