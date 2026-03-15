@@ -326,7 +326,7 @@ main{max-width:1100px;margin:0 auto;padding:24px 14px 110px}
   <div class="av"><span class="av-i">⚠️</span><p><strong>Atenção:</strong> Cada produto já traz massa e recheio combinados. Escolha seu favorito!</p></div>
   <div class="av"><span class="av-i">💳</span><p><strong>Pagamento na entrega:</strong> apenas <strong>Pix</strong>. <strong>Na retirada:</strong> Pix, espécie, débito ou crédito. <strong>Cartão tem acréscimo.</strong></p></div>
   <div class="av"><span class="av-i">🛵</span><p><strong>Frete:</strong> calculado conforme sua região após o pedido.</p></div>
-  <div class="av"><span class="av-i">📍</span><p><strong>Endereço:</strong> Rua Dr. Pergentino Maia, 1123 – Fortaleza, CE</p></div>
+  <div class="av"><span class="av-i">📍</span><p><strong>Endereço da Confeitaria:</strong> Rua Dr. Pergentino Maia, 1123 – Fortaleza, CE</p></div>
 </div>
 
 <!-- CONTADOR + COMPARTILHAR -->
@@ -345,6 +345,18 @@ main{max-width:1100px;margin:0 auto;padding:24px 14px 110px}
 <!-- BOTÕES FLUTUANTES -->
 <button id="adm-btn" onclick="abrirModalSenha()" title="Gerenciar estoque">⚙️</button>
 <button id="cart-btn">🛒<span class="cbadge" id="cbadge">0</span></button>
+<script>
+(function(){
+  try {
+    var c = JSON.parse(localStorage.getItem("du_carrinho")||"{}");
+    var n = Object.values(c).reduce(function(a,b){return a+b;},0);
+    if(n>0){
+      var el = document.getElementById("cbadge");
+      if(el){ el.textContent=n; el.classList.add("vis"); }
+    }
+  } catch(e){}
+})();
+</script>
 <div class="toast" id="toast"></div>
 
 <!-- MAIN -->
@@ -398,7 +410,7 @@ main{max-width:1100px;margin:0 auto;padding:24px 14px 110px}
         <p class="frtit">📋 Dados para o pedido</p>
         <div class="fr"><label>Nome *</label><input type="text" id="f-nome" placeholder="Seu nome completo"></div>
         <div class="fr"><label>Endereço (opcional)</label><input type="text" id="f-end" placeholder="Rua, número, bairro"></div>
-        <div class="fr"><label>Celular (opcional)</label><input type="tel" id="f-tel" placeholder="(85) 99999-9999"></div>
+        <div class="fr"><label>Celular / WhatsApp *</label><input type="tel" id="f-tel" placeholder="(85) 99999-9999"></div>
         <div class="fr"><label>Observação (opcional)</label><textarea id="f-obs" placeholder="Alguma observação?"></textarea></div>
         <div class="fr"><label>Forma de pagamento</label>
           <select id="f-pag">
@@ -556,7 +568,8 @@ const CATS = [
 // ============================================================
 let siteAtivo  = true;  // sempre começa aberto — Firebase atualiza em seguida
 let produtos  = {};
-let carrinho  = {};
+// Recupera carrinho salvo (persiste ao atualizar a página)
+let carrinho = JSON.parse(localStorage.getItem('du_carrinho') || '{}');
 let offline   = false;
 let admAberto = false;
 let notaSel   = 0;
@@ -751,6 +764,8 @@ function renderCardapio() {
       adicionar(btn.dataset.id);
     });
   });
+  // Sempre restaura o badge depois de renderizar
+  atualizarBadge();
 }
 
 // ============================================================
@@ -797,7 +812,11 @@ function mais1(id) { adicionar(id); renderCheckout(); }
 // ============================================================
 // HELPERS
 // ============================================================
+function salvarCarrinho() {
+  localStorage.setItem('du_carrinho', JSON.stringify(carrinho));
+}
 function atualizarBadge() {
+  salvarCarrinho();
   const n = Object.values(carrinho).reduce((a,b)=>a+b,0);
   const el = document.getElementById('cbadge');
   el.textContent = n; el.classList.toggle('vis', n>0);
@@ -878,6 +897,7 @@ function enviarWapp() {
   const pag=document.getElementById('f-pag').value;
   const troco=document.getElementById('f-troco').value.trim();
   if (!nome) { showToast('⚠️ Informe seu nome!'); document.getElementById('f-nome').focus(); return; }
+  if (!tel)  { showToast('⚠️ Informe seu celular/WhatsApp!'); document.getElementById('f-tel').focus(); return; }
   if (!pag)  { showToast('⚠️ Selecione a forma de pagamento!'); return; }
   const pl={pix:'Pix',especie:'Espécie',credito:'Cartão de Crédito',debito:'Cartão de Débito'};
   const total=calcTotal(); let itens='';
@@ -898,7 +918,7 @@ function enviarWapp() {
   atualizarContador();
 
   const nomeCliente = nome;
-  carrinho={}; atualizarBadge();
+  carrinho={}; salvarCarrinho(); atualizarBadge();
   window.open('https://wa.me/'+WHATSAPP_NUM+'?text='+encodeURIComponent(msg),'_blank');
   // Mostra tela de agradecimento
   document.getElementById('obg-nome').textContent = nomeCliente;
@@ -1058,6 +1078,8 @@ function contarCliqueOff() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+  // Restaura badge do carrinho salvo imediatamente
+  atualizarBadge();
 
   // Pagamento
   document.getElementById('f-pag').addEventListener('change', function() {
@@ -1076,7 +1098,15 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Navegação
-  document.getElementById('cart-btn').addEventListener('click',()=>{ mostrar('ck-view'); renderCheckout(); });
+  document.getElementById('cart-btn').addEventListener('click',()=>{
+    mostrar('ck-view');
+    renderCheckout();
+    // Scroll suave até o formulário de dados
+    setTimeout(() => {
+      const form = document.getElementById('ck-form-wrap');
+      if (form) form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  });
   document.getElementById('btn-back-menu').addEventListener('click',()=>mostrar('menu-view'));
   document.getElementById('btn-back-menu2').addEventListener('click',()=>mostrar('menu-view'));
   document.getElementById('btn-adm-sair').addEventListener('click',()=>{ admAberto=false; mostrar('menu-view'); });
